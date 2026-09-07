@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>資訊素養風紀管理系統 v2.0</title>
+    <title>資訊素養風紀管理系統 v2.1</title>
     <!-- Firebase SDK v10 -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
@@ -67,7 +67,6 @@
         
         .week-controls { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 15px;}
         
-        /* v2.0 styles */
         .admin-duty-cell { padding: 15px 10px; background: #f9f9f9; cursor: pointer; transition: background 0.2s; min-height: 50px; }
         .admin-duty-cell:hover { background: #e8f4fd; }
         .student-chip { display: inline-block; background: var(--primary-color); color: white; padding: 4px 8px; margin: 2px; border-radius: 12px; font-size: 0.8rem; }
@@ -86,18 +85,15 @@
 
 <div class="container" id="mainContainer" style="display:none;">
     <header>
-        <h1>資訊素養風紀管理系統 v2.0</h1>
+        <h1>資訊素養風紀管理系統 v2.1</h1>
         <div>
             <span id="currentUser" style="margin-right: 15px; font-weight: bold;">身分: 學生</span>
             <button class="btn-primary" onclick="document.getElementById('adminLoginModal').style.display='flex'" id="loginBtn">老師登入</button>
             <button class="btn-danger" id="logoutBtn" style="display:none;" onclick="app.logoutTeacher()">登出</button>
         </div>
     </header>
-
-    <!-- 學生版面 -->
     <div id="studentView" class="section active">
         <div id="holidayBanner">🏖️ 此週有學校假期或特別活動日，無需當值簽到。</div>
-        
         <div class="week-controls">
             <button class="btn-nav" onclick="app.changeWeek(-1)">⬅️ 上星期</button>
             <div style="text-align: center;">
@@ -106,17 +102,13 @@
             </div>
             <button class="btn-nav" onclick="app.changeWeek(1)">下星期 ➡️</button>
         </div>
-        
         <p style="font-size: 0.85rem; color: #555; text-align: center; margin-top: 0;">
             <button class="btn-nav" style="padding: 2px 8px; font-size: 0.8rem; margin-bottom: 10px;" onclick="app.resetWeek()">📍 回到本星期</button><br>
             指示：<strong>深灰</strong>=今日簽到｜<strong style="color:#7f8c8d;">淺灰虛線</strong>=未來預先請假｜🔒 過去日子已上鎖
         </p>
-        
         <div style="overflow-x: auto;">
             <table id="weeklyRosterTable">
-                <thead>
-                    <tr><th>時段</th><th id="th-Mon">星期一</th><th id="th-Tue">星期二</th><th id="th-Wed">星期三</th><th id="th-Thu">星期四</th><th id="th-Fri">星期五</th></tr>
-                </thead>
+                <thead><tr><th>時段</th><th id="th-Mon">星期一</th><th id="th-Tue">星期二</th><th id="th-Wed">星期三</th><th id="th-Thu">星期四</th><th id="th-Fri">星期五</th></tr></thead>
                 <tbody id="weeklyRosterBody"></tbody>
             </table>
         </div>
@@ -124,23 +116,17 @@
             <h3 style="margin-top:0; color: #16a085;">🔄 替更簽到 (Substitute)</h3>
             <p style="font-size:0.85rem; color: #555;">如編定同學缺席或請假，其他風紀可於<strong>今日當值時間開始 5 分鐘後</strong>替代當值。</p>
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <select id="subTimeSlot" style="padding:8px; border-radius:4px; border:1px solid #ccc;">
-                    <option value="13:05-13:20">午息1 (13:05-13:20)</option>
-                    <option value="13:20-13:35">午息2 (13:20-13:35)</option>
-                </select>
+                <select id="subTimeSlot" style="padding:8px; border-radius:4px; border:1px solid #ccc;"><option value="13:05-13:20">午息1 (13:05-13:20)</option><option value="13:20-13:35">午息2 (13:20-13:35)</option></select>
                 <button class="btn-accent" onclick="app.initSubstitute()">進行今日替更</button>
             </div>
         </div>
     </div>
-
-    <!-- 老師版面 -->
     <div id="teacherView" class="section">
         <div class="tabs">
             <button class="tab-btn active" onclick="app.switchTab('dashboard')">表現及缺席</button>
-            <button class="tab-btn" onclick="app.switchTab('schedule')">可視化排更 (v2.0)</button>
+            <button class="tab-btn" onclick="app.switchTab('schedule')">可視化排更 (v2.1)</button>
             <button class="tab-btn" onclick="app.switchTab('admin')">後台及備份</button>
         </div>
-
         <div id="tab-dashboard" class="tab-content">
             <div class="dashboard-grid">
                 <div class="card" style="border-top: 4px solid var(--danger-color);">
@@ -158,8 +144,123 @@
                 </div>
             </div>
         </div>
-
-        <!-- v2.0: 可視化排更介面 -->
         <div id="tab-schedule" class="tab-content" style="display:none;">
             <div class="card">
-                <h3 style="color: var(--prima
+                <h3 style="color: var(--primary-color);">📅 可視化排更系統 (Visual Scheduler)</h3>
+                <p style="font-size: 0.85rem; color: #555;">請點擊下方任何一個時間格，即可彈出風紀列表進行排更。完成後系統會自動儲存。</p>
+                <div style="overflow-x: auto;">
+                    <table id="adminRosterTable">
+                        <thead><tr><th>時段</th><th>星期一</th><th>星期二</th><th>星期三</th><th>星期四</th><th>星期五</th></tr></thead>
+                        <tbody id="adminRosterBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div id="tab-admin" class="tab-content" style="display:none;">
+            <div class="card" style="border: 2px dashed #3498db; margin-bottom: 20px;">
+                <h3 style="color: #2980b9;">💾 災難復原與備份中心</h3>
+                <p style="font-size: 0.85rem; color: #555;">強烈建議定期匯出備份。若雲端資料遺失，可在此將備份內容貼回系統。</p>
+                <button class="btn-accent" onclick="app.exportFullBackup()">📥 匯出所有資料 (下載 JSON)</button>
+                <hr style="margin: 15px 0; border:0; border-top: 1px solid #eee;">
+                <p style="font-size: 0.85rem; color: #c0392b; font-weight: bold;">⚠️ 緊急救援 (貼上之前備份的 JSON 內容)：</p>
+                <textarea id="jsonRestore" style="width:100%; height: 100px; margin-bottom: 10px; font-family:monospace;" placeholder="請在此貼上完整備份的 JSON 內容..."></textarea>
+                <button class="btn-danger" onclick="app.importFullBackup()">🚨 強制覆蓋雲端復原資料</button>
+            </div>
+            <div class="card">
+                <h3 style="color: var(--holiday-color);">📅 突發停止當值日設定</h3>
+                <p style="font-size:0.85rem; color:#666;">如因特別活動或電腦室關閉無需當值，請在此加入日期。</p>
+                <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap: wrap;">
+                    <input type="date" id="specialDateInput" style="padding:8px;"><input type="text" id="specialDateDesc" placeholder="原因 (例: 運動會/停電)" style="padding:8px; flex-grow:1;"><button class="btn-warning" onclick="app.addSpecialDate()">新增豁免日</button>
+                </div>
+                <ul id="specialDatesList" style="margin-bottom:20px; font-size:0.9rem; background:#fff; padding:10px; border-radius:5px; border:1px dashed #ccc;"></ul>
+                <hr style="margin: 20px 0;">
+                <h3>⚙️ 舊式後台設定 (JSON 格式)</h3>
+                <label>修改學生名單：</label>
+                <textarea id="jsonStudents" style="width:100%; height: 150px; margin-bottom: 10px; font-family:monospace;"></textarea>
+                <button class="btn-success" onclick="app.saveAdminData('students')">儲存學生名單</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="adminLoginModal" class="modal-overlay" style="display:none;"><div class="modal-content"><h3>切換至老師模式</h3><input type="password" id="adminPassword" placeholder="輸入密碼"><div><button class="btn-primary" onclick="app.verifyAdmin()">登入</button><button class="btn-danger" onclick="this.parentElement.parentElement.parentElement.style.display='none'">取消</button></div></div></div>
+<div id="studentPinModal" class="modal-overlay" style="display:none;"><div class="modal-content"><h3>簽到及請假系統</h3><p>學生：<strong id="authStudentName" style="color: var(--accent-color);"></strong></p><p>日期：<strong id="authDateDisplay" style="font-size:0.9rem;"></strong></p><div id="checkInDiv" style="border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px;"><input type="password" id="studentPin" placeholder="請輸入密碼 (預設為班號)"><button class="btn-success" style="width: 90%; margin-top: 5px;" onclick="app.submitCheckIn()">確認簽到 (出席)</button></div><div><p id="modalInstruction" style="font-size: 0.8rem; color: #e67e22; margin-top: 0;">\* 如生病或有事未能當值，可點擊下方按鈕</p><button class="btn-warning" style="width: 44%; margin-right: 2%;" onclick="app.submitExcused()">預先請假</button><button class="btn-danger" style="width: 44%;" onclick="this.parentElement.parentElement.parentElement.style.display='none'">取消返回</button></div></div></div>
+<div id="substituteModal" class="modal-overlay" style="display:none;"><div class="modal-content"><h3>🔄 今日替更身分驗證</h3><p>時段：<strong id="subTimeDisplay"></strong></p><p style="font-size:0.8rem; color:#666;">請選擇你自己的名字並輸入密碼。</p><select id="subStudentSelect"></select><input type="password" id="subStudentPin" placeholder="請輸入密碼 (預設為班號)"><div><button class="btn-success" onclick="app.submitSubstitute()">確認替更</button><button class="btn-danger" onclick="this.parentElement.parentElement.parentElement.style.display='none'">取消</button></div></div></div>
+<div id="scheduleModal" class="modal-overlay" style="display:none;"><div class="modal-content"><h3>編輯當值名單</h3><p>時段：<strong id="scheduleModalTitle" style="color: var(--accent-color);"></strong></p><div id="scheduleModalCheckboxes"></div><div><button class="btn-success" style="width: 44%; margin-right:2%" onclick="app.saveSchedule()">儲存</button><button class="btn-danger" style="width: 44%;" onclick="document.getElementById('scheduleModal').style.display='none'">取消</button></div></div></div>
+
+<script>
+/**
+ * Info Literacy System v2.1 - Initialization Hotfix
+ */
+const firebaseConfig = { apiKey: "AIzaSyCIJLabzau-fjNq-4FZ8PLQ-EcOXTvf7KE", authDomain: "ambassador-system.firebaseapp.com", projectId: "ambassador-system", storageBucket: "ambassador-system.firebasestorage.app", messagingSenderId: "963348186876", appId: "1:963348186876:web:fb8404897e906c4fb8b979", measurementId: "G-2R6ZWSVK90" };
+var db = null, isFirebaseReady = false;
+try { if (typeof firebase !== 'undefined') { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); isFirebaseReady = true; } } catch (e) { console.error("Firebase Blocked:", e); }
+const ABSENCE_START_DATE = "2026-09-01", HOLIDAYS = [ '2026-09-14', '2026-09-26', '2026-10-01', '2026-10-02', '2026-10-19', '2026-11-04', '2026-12-21', '2026-12-22', '2026-12-23', '2026-12-24', '2026-12-25', '2026-12-26', '2026-12-27', '2026-12-28', '2026-12-29', '2026-12-30', '2026-12-31', '2027-01-01', '2027-01-02', '2027-01-04', '2027-01-06', '2027-01-18', '2027-01-19', '2027-01-20', '2027-01-21', '2027-01-22', '2027-02-04', '2027-02-05', '2027-02-06', '2027-02-07', '2027-02-08', '2027-02-09', '2027-02-10', '2027-02-11', '2027-02-12', '2027-02-13', '2027-03-03', '2027-03-25', '2027-03-26', '2027-03-27', '2027-03-28', '2027-03-29', '2027-03-30', '2027-03-31', '2027-04-01', '2027-04-02', '2027-04-03', '2027-04-05', '2027-05-01', '2027-05-13', '2027-05-14', '2027-06-01', '2027-06-09', '2027-07-01', '2027-07-12', '2027-07-13', '2027-07-14', '2027-07-15', '2027-07-16' ];
+const DEFAULT_STUDENTS = [ {"class": "6B", "no": "05", "name": "戴子鉅", "full": "6B 05 戴子鉅", "pin": "05"}, {"class": "6B", "no": "13", "name": "梁逸朗", "full": "6B 13 梁逸朗", "pin": "13"}, {"class": "5A", "no": "04", "name": "陳健鴻", "full": "5A 04 陳健鴻", "pin": "04"}, {"class": "5A", "no": "11", "name": "何思霆", "full": "5A 11 何思霆", "pin": "11"}, {"class": "5B", "no": "09", "name": "馮柏睿", "full": "5B 09 馮柏睿", "pin": "09"}, {"class": "5B", "no": "23", "name": "魏栢叡", "full": "5B 23 魏栢叡", "pin": "23"}, {"class": "5E", "no": "06", "name": "馮祉晴", "full": "5E 06 馮祉晴", "pin": "06"}, {"class": "4A", "no": "04", "name": "陳德林", "full": "4A 04 陳德林", "pin": "04"}, {"class": "4B", "no": "02", "name": "陳哲朗", "full": "4B 02 陳哲朗", "pin": "02"}, {"class": "4B", "no": "12", "name": "林思涵", "full": "4B 12 林思涵", "pin": "12"}, {"class": "4B", "no": "15", "name": "盧琦淇", "full": "4B 15 盧琦淇", "pin": "15"}, {"class": "4B", "no": "21", "name": "湯子睿", "full": "4B 21 湯子睿", "pin": "21"}, {"class": "4B", "no": "24", "name": "楊廷熙", "full": "4B 24 楊廷熙", "pin": "24"} ];
+const DEFAULT_SCHEDULE = { "Monday": { "13:05-13:20": [], "13:20-13:35": [] }, "Tuesday": { "13:05-13:20": [], "13:20-13:35": [] }, "Wednesday": { "13:05-13:20": [], "13:20-13:35": [] }, "Thursday": { "13:05-13:20": [], "13:20-13:35": [] }, "Friday": { "13:05-13:20": [], "13:20-13:35": [] } };
+function getLocalYYYYMMDD(d) { return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];}
+var isOfflineMode = false; 
+function forceLoadLocal() { isOfflineMode = true; document.getElementById('systemStatus').style.display = 'block'; document.getElementById('systemStatus').className = 'status-offline'; document.getElementById('statusText').innerText = "🚫 系統目前為「單機離線模式」。為防止覆蓋雲端資料，目前只能【查看】，不能【簽到】或【修改】。請重新整理網頁以恢復連線。"; document.getElementById('forceBtn').style.display = 'none'; document.getElementById('mainContainer').style.display = 'block'; var stored = localStorage.getItem('info_literacy_v2_1'); if (stored) { var parsed = JSON.parse(stored); app.data.students = parsed.students || DEFAULT_STUDENTS; app.data.schedule = parsed.schedule || DEFAULT_SCHEDULE; app.data.logs = parsed.logs || []; app.data.specialDates = parsed.specialDates || []; } else { app.data = { students: DEFAULT_STUDENTS, schedule: DEFAULT_SCHEDULE, logs: [], specialDates: [] }; } app.isLoaded = true; app.postLoad(); }
+var app = {
+    data: { students: [], schedule: {}, logs: [], specialDates: [] },
+    pendingCheckIn: null, pendingSub: null, pendingSchedule: null, isLoaded: false, viewDateBase: new Date(),
+    init: function() { this.loadData(); setTimeout(() => { if (!this.isLoaded) { document.getElementById('statusText').innerText = "⚠️ 連線異常。請點擊下方紅色按鈕進入單機模式 (僅供查看)。"; } }, 5000); },
+    loadData: function() {
+        if (!isFirebaseReady || !db) { setTimeout(forceLoadLocal, 500); return; }
+        db.collection("config").doc("main").get().then(doc => {
+            if (this.isLoaded) return;
+            this.isLoaded = true;
+            let needsSave = false;
+            if (doc.exists) {
+                const fetchedData = doc.data();
+                this.data.students = (fetchedData.students && fetchedData.students.length > 0) ? fetchedData.students : DEFAULT_STUDENTS;
+                // v2.1 HOTFIX: Check if schedule is a valid map with expected keys
+                this.data.schedule = (fetchedData.schedule && fetchedData.schedule.Monday) ? fetchedData.schedule : DEFAULT_SCHEDULE;
+                this.data.logs = fetchedData.logs || [];
+                this.data.specialDates = fetchedData.specialDates || [];
+                
+                // If data was empty, we should populate it now
+                if (!fetchedData.students || fetchedData.students.length === 0 || !fetchedData.schedule || !fetchedData.schedule.Monday) {
+                    needsSave = true;
+                }
+            } else {
+                this.data = { students: DEFAULT_STUDENTS, schedule: DEFAULT_SCHEDULE, logs: [], specialDates: [] };
+                needsSave = true;
+            }
+            if(needsSave) this.saveData();
+
+            localStorage.setItem('info_literacy_v2_1', JSON.stringify(this.data));
+            document.getElementById('systemStatus').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'block';
+            this.postLoad();
+        }).catch(error => { if (!this.isLoaded) { document.getElementById('statusText').innerText = `❌ 網絡連線被拒 (${error.code})。請點擊紅色按鈕進入單機模式。`; } });
+    },
+    saveData: function() { if (isOfflineMode) { alert("🛑 系統處於離線保護模式，無法儲存！"); return false; } if (isFirebaseReady && db) { db.collection("config").doc("main").set(this.data).then(() => localStorage.setItem('info_literacy_v2_1', JSON.stringify(this.data))).catch(err => console.error("Save Error", err)); } return true; },
+    exportFullBackup: function() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.data, null, 2)); const dl = document.createElement('a'); dl.setAttribute("href", dataStr); dl.setAttribute("download", "ambassador_backup_" + getLocalYYYYMMDD(new Date()) + ".json"); document.body.appendChild(dl); dl.click(); dl.remove(); },
+    importFullBackup: function() { const txt = document.getElementById('jsonRestore').value; if (!txt) { alert("請先貼上 JSON 內容！"); return; } try { const parsed = JSON.parse(txt); if (confirm("🚨 警告：這將會【強制覆蓋】雲端上目前所有的資料！\n確定要執行災難復原嗎？")) { this.data = parsed; db.collection("config").doc("main").set(this.data).then(() => { alert("✅ 災難復原成功！"); location.reload(); }); } } catch (e) { alert("❌ 格式錯誤，無法解析 JSON 內容！"); } },
+    postLoad: function() { this.renderWeeklyRoster(); this.renderAdminTab(); this.renderAdminRoster(); },
+    getWeekDates: function(d) { const date = new Date(d); const day = date.getDay(); const diff = date.getDate() - day + (day === 0 ? -6 : 1); const monday = new Date(date.setDate(diff)); return Array.from({ length: 5 }, (_, i) => { const tempDate = new Date(monday); tempDate.setDate(monday.getDate() + i); return getLocalYYYYMMDD(tempDate); }); },
+    changeWeek: function(offset) { this.viewDateBase.setDate(this.viewDateBase.getDate() + (offset * 7)); this.renderWeeklyRoster(); },
+    resetWeek: function() { this.viewDateBase = new Date(); this.renderWeeklyRoster(); },
+    isHolidayOrSpecial: function(dateStr) { return HOLIDAYS.includes(dateStr) || this.data.specialDates.some(sd => sd.date === dateStr); },
+    renderWeeklyRoster: function() { const realToday = getLocalYYYYMMDD(new Date()); const weekDates = this.getWeekDates(this.viewDateBase); document.getElementById('weekRange').innerText = `${weekDates[0]} 至 ${weekDates[4]}`; document.getElementById('holidayBanner').style.display = weekDates.some(this.isHolidayOrSpecial) ? 'block' : 'none'; const daysMap = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], times = ["13:05-13:20", "13:20-13:35"], tbody = document.getElementById('weeklyRosterBody'); tbody.innerHTML = ""; times.forEach(time => { const tr = document.createElement('tr'); tr.innerHTML = `<td><strong>${time}</strong></td>`; daysMap.forEach((day, index) => { const cellDate = weekDates[index]; let cellHTML = ''; (this.data.schedule[day]?.[time] || []).forEach(name => { const log = this.data.logs.find(l => l.date === cellDate && l.time === time && l.student === name); let c = 'cell-future', t = name, oc = `app.promptPin('${name}','${cellDate}','${time}','future')`; if (this.isHolidayOrSpecial(cellDate)) { c = 'cell-holiday'; t += '\\n(假期)'; oc = ''; } else if (log) { if (log.status === "Present") { c = 'cell-checked'; t += '\\n(✓ 出席)'; } else { c = 'cell-excused'; t += '\\n(已請假)'; } oc = ''; } else if (cellDate < realToday) { c = 'cell-past'; t += '\\n🔒 未簽到'; oc = ''; } else if (cellDate === realToday) { c = 'cell-pending'; oc = `app.promptPin('${name}','${cellDate}','${time}','today')`; } cellHTML += `<div class="duty-cell ${c}" onclick="${oc}">${t}</div>`; }); (this.data.logs.filter(l => l.date === cellDate && l.time === time && l.status === "Substitute") || []).forEach(sl => { cellHTML += `<div class="duty-cell cell-subbed">${sl.student}\\n(替更)</div>`; }); tr.innerHTML += `<td>${cellHTML}</td>`; }); tbody.appendChild(tr); }); },
+    promptPin: function(name, date, time, mode) { if (isOfflineMode) return; this.pendingCheckIn = { studentName: name, date, time }; document.getElementById('authStudentName').innerText = name; document.getElementById('authDateDisplay').innerText = `${date} (${time})`; document.getElementById('studentPin').value = ""; document.getElementById('checkInDiv').style.display = (mode === 'future') ? 'none' : 'block'; document.getElementById('modalInstruction').innerText = (mode === 'future') ? "⚠️ 這是未來的日子，你只能【預先請假】。" : "如未能當值，可點擊下方按鈕請假。"; document.getElementById('studentPinModal').style.display = 'flex'; },
+    submitCheckIn: function() { const pin = document.getElementById('studentPin').value, student = this.data.students.find(s => s.full === this.pendingCheckIn.studentName); if (student && pin === student.pin) { this.data.logs.push({ ...this.pendingCheckIn, status: "Present", timestamp: new Date().toISOString() }); if (this.saveData()) { document.getElementById('studentPinModal').style.display = 'none'; alert('✅ 簽到成功！'); this.renderWeeklyRoster(); } } else { alert('❌ 密碼錯誤！'); } },
+    submitExcused: function() { if (confirm(`確定要為 [${this.pendingCheckIn.studentName}] 登記 ${this.pendingCheckIn.date} 的請假嗎？`)) { this.data.logs.push({ ...this.pendingCheckIn, status: "Excused", timestamp: new Date().toISOString() }); if (this.saveData()) { document.getElementById('studentPinModal').style.display = 'none'; alert('✅ 已成功登記請假！'); this.renderWeeklyRoster(); } } },
+    initSubstitute: function() { if (isOfflineMode) return; const timeSlot = document.getElementById('subTimeSlot').value, today = getLocalYYYYMMDD(new Date()); if (this.isHolidayOrSpecial(today)) { alert("🏖️ 今日是假期，無需替更。"); return; } const [hr, min] = timeSlot.split('-')[0].split(':').map(Number); const subAllowTime = new Date(); subAllowTime.setHours(hr, min + 5, 0, 0); if (new Date() < subAllowTime) { alert("⚠️ 尚未開放替更！\n需在當值時間 5 分鐘後方可替更。"); return; } this.pendingSub = { date: today, time: timeSlot }; document.getElementById('subTimeDisplay').innerText = timeSlot; const select = document.getElementById('subStudentSelect'); select.innerHTML = '<option value="">-- 點擊選擇你的名字 --</option>'; this.data.students.forEach(s => select.innerHTML += `<option value="${s.full}">${s.full}</option>`); document.getElementById('subStudentPin').value = ""; document.getElementById('substituteModal').style.display = 'flex'; },
+    submitSubstitute: function() { const name = document.getElementById('subStudentSelect').value, pin = document.getElementById('subStudentPin').value; if (!name) { alert("請選擇你的名字！"); return; } const student = this.data.students.find(s => s.full === name), dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()]; if ((this.data.schedule[dayName]?.[this.pendingSub.time] || []).includes(name)) { alert("❌ 你是這個時段的原定當值員，請直接簽到！"); return; } if (this.data.logs.some(l => l.date === this.pendingSub.date && l.student === name)) { alert("你今天已簽到/替更過！"); return; } if (student && pin === student.pin) { this.data.logs.push({ date: this.pendingSub.date, time: this.pendingSub.time, student: name, status: "Substitute", timestamp: new Date().toISOString() }); if (this.saveData()) { document.getElementById('substituteModal').style.display = 'none'; alert('✅ 替更成功！'); this.renderWeeklyRoster(); } } else { alert('❌ 密碼錯誤！'); } },
+    verifyAdmin: function() { if (document.getElementById('adminPassword').value === "Ambassador") { document.getElementById('adminLoginModal').style.display = 'none'; document.getElementById('currentUser').innerText = "身分: 老師"; document.getElementById('loginBtn').style.display = 'none'; document.getElementById('logoutBtn').style.display = 'inline-block'; document.getElementById('studentView').classList.remove('active'); document.getElementById('teacherView').classList.add('active'); this.switchTab('dashboard'); } else { alert('密碼錯誤'); } },
+    logoutTeacher: function() { document.getElementById('currentUser').innerText = "身分: 學生"; document.getElementById('logoutBtn').style.display = 'none'; document.getElementById('loginBtn').style.display = 'inline-block'; document.getElementById('teacherView').classList.remove('active'); document.getElementById('studentView').classList.add('active'); this.renderWeeklyRoster(); },
+    switchTab: function(tab) { document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none'); document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active')); document.getElementById(`tab-${tab}`).style.display = 'block'; document.querySelector(`.tab-btn[onclick*="'${tab}'"]`).classList.add('active'); if (tab === 'dashboard') this.renderDashboard(); if (tab === 'schedule') this.renderAdminRoster(); if (tab === 'admin') this.renderAdminTab(); },
+    renderAdminRoster: function() { const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], times = ["13:05-13:20", "13:20-13:35"], tbody = document.getElementById('adminRosterBody'); tbody.innerHTML = ""; times.forEach(time => { const tr = document.createElement('tr'); tr.innerHTML = `<td><strong>${time}</strong></td>`; days.forEach(day => { let cellHTML = ''; (this.data.schedule[day]?.[time] || []).forEach(name => { cellHTML += `<span class="student-chip">${(this.data.students.find(s => s.full === name) || {name}).name}</span>`; }); tr.innerHTML += `<td class="admin-duty-cell" onclick="app.openScheduleModal('${day}','${time}')">${cellHTML}</td>`; }); tbody.appendChild(tr); }); },
+    openScheduleModal: function(day, time) { this.pendingSchedule = { day, time }; document.getElementById('scheduleModalTitle').innerText = `星期${["一","二","三","四","五"][["Monday","Tuesday","Wednesday","Thursday","Friday"].indexOf(day)]} ${time}`; const box = document.getElementById('scheduleModalCheckboxes'); box.innerHTML = ""; const current = this.data.schedule[day]?.[time] || []; this.data.students.forEach(s => { box.innerHTML += `<label><input type="checkbox" value="${s.full}" ${current.includes(s.full) ? 'checked' : ''}> ${s.full}</label>`; }); document.getElementById('scheduleModal').style.display = 'flex'; },
+    saveSchedule: function() { const { day, time } = this.pendingSchedule, selected = []; document.querySelectorAll('#scheduleModalCheckboxes input:checked').forEach(c => selected.push(c.value)); this.data.schedule[day][time] = selected; if (this.saveData()) { document.getElementById('scheduleModal').style.display = 'none'; alert('✅ 當值表已更新！'); this.renderAdminRoster(); this.renderWeeklyRoster(); } },
+    renderDashboard: function() { const scores = {}, absentees = {}; this.data.students.forEach(s => scores[s.full] = { ...s, score: 0 }); this.data.logs.forEach(l => { if (scores[l.student] && (l.status === 'Present' || l.status === 'Substitute')) scores[l.student].score++; }); document.getElementById('scoreTableBody').innerHTML = Object.values(scores).sort((a, b) => b.score - a.score).map(s => `<tr><td>${s.class}</td><td>${s.name}</td><td><strong>${s.score}</strong></td></tr>`).join(''); let d = new Date(ABSENCE_START_DATE); while (d <= new Date()) { const dStr = getLocalYYYYMMDD(d); if (d.getDay() > 0 && d.getDay() < 6 && !this.isHolidayOrSpecial(dStr)) { const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d.getDay()]; Object.values(this.data.schedule[dayName] || {}).flat().forEach(name => { if (this.data.students.some(s => s.full === name) && !this.data.logs.some(l => l.date === dStr && l.student === name && ['Present', 'Substitute', 'Excused'].includes(l.status))) absentees[name] = (absentees[name] || 0) + 1; }); } d.setDate(d.getDate() + 1); } const absList = document.getElementById('frequentAbsenteesList'), sortedAbs = Object.entries(absentees).filter(([, c]) => c >= 2).sort(([, a], [, b]) => b - a); absList.innerHTML = sortedAbs.length ? sortedAbs.map(([n, c]) => `<li>${n} - 缺席 ${c} 次</li>`).join('') : "<li style='color:green;'>🎉 目前沒有學生經常缺席！</li>"; },
+    renderAdminTab: function() { document.getElementById('jsonStudents').value = JSON.stringify(this.data.students, null, 2); const ul = document.getElementById('specialDatesList'); ul.innerHTML = ""; (this.data.specialDates || []).forEach((sd, i) => { ul.innerHTML += `<li><strong>${sd.date}</strong> - ${sd.desc||"無備註"} <button class="btn-danger" style="padding:2px 6px;font-size:0.7rem;" onclick="app.removeSpecialDate(${i})">X</button></li>`; }); },
+    addSpecialDate: function() { if (isOfflineMode) return; const date = document.getElementById('specialDateInput').value; if (!date) { alert("請選擇日期！"); return; } if (this.data.specialDates.some(sd => sd.date === date)) { alert("該日期已存在！"); return; } this.data.specialDates.push({ date: date, desc: document.getElementById('specialDateDesc').value || '特別活動' }); this.data.specialDates.sort((a, b) => new Date(a.date) - new Date(b.date)); if (this.saveData()) { document.getElementById('specialDateInput').value = document.getElementById('specialDateDesc').value = ""; this.renderAdminTab(); alert(`✅ 已新增 ${date} 為豁免日！`); } },
+    removeSpecialDate: function(index) { if (isOfflineMode) return; if (confirm("確定要刪除此豁免日嗎？")) { this.data.specialDates.splice(index, 1); if (this.saveData()) this.renderAdminTab(); } },
+    saveAdminData: function(type) { if (isOfflineMode) return; if (type === 'students') { try { const newStudents = JSON.parse(document.getElementById('jsonStudents').value); if (!Array.isArray(newStudents) || !newStudents.every(s => s.full && s.pin)) throw new Error("學生名單格式不正確"); this.data.students = newStudents; if (this.saveData()) { alert('✅ 學生名單已儲存'); this.renderAdminTab(); this.renderAdminRoster(); } } catch (e) { alert('❌ JSON 格式錯誤: ' + e.message); } } }
+};
+window.onload = function() { app.init(); };
+</script>
+</body>
+</html>
