@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>資訊素養風紀管理系統 v2.2</title>
+    <title>資訊素養風紀管理系統 v2.3</title>
     <!-- Firebase SDK v10 -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
@@ -85,7 +85,7 @@
 
 <div class="container" id="mainContainer" style="display:none;">
     <header>
-        <h1>資訊素養風紀管理系統 v2.2</h1>
+        <h1>資訊素養風紀管理系統 v2.3</h1>
         <div>
             <span id="currentUser" style="margin-right: 15px; font-weight: bold;">身分: 學生</span>
             <button class="btn-primary" onclick="document.getElementById('adminLoginModal').style.display='flex'" id="loginBtn">老師登入</button>
@@ -124,7 +124,7 @@
     <div id="teacherView" class="section">
         <div class="tabs">
             <button class="tab-btn active" onclick="app.switchTab('dashboard')">表現及缺席</button>
-            <button class="tab-btn" onclick="app.switchTab('schedule')">可視化排更 (v2.2)</button>
+            <button class="tab-btn" onclick="app.switchTab('schedule')">可視化排更 (v2.3)</button>
             <button class="tab-btn" onclick="app.switchTab('admin')">後台及備份</button>
         </div>
         <div id="tab-dashboard" class="tab-content">
@@ -189,7 +189,7 @@
 
 <script>
 /**
- * Info Literacy System v2.2 - "this" context Hotfix
+ * Info Literacy System v2.3 - Stable Build (Async/Race-condition Hotfix)
  */
 const firebaseConfig = { apiKey: "AIzaSyCIJLabzau-fjNq-4FZ8PLQ-EcOXTvf7KE", authDomain: "ambassador-system.firebaseapp.com", projectId: "ambassador-system", storageBucket: "ambassador-system.firebasestorage.app", messagingSenderId: "963348186876", appId: "1:963348186876:web:fb8404897e906c4fb8b979", measurementId: "G-2R6ZWSVK90" };
 var db = null, isFirebaseReady = false;
@@ -198,7 +198,7 @@ const ABSENCE_START_DATE = "2026-09-01", HOLIDAYS = [ '2026-09-14', '2026-09-26'
 const DEFAULT_STUDENTS = [ {"class": "6B", "no": "05", "name": "戴子鉅", "full": "6B 05 戴子鉅", "pin": "05"}, {"class": "6B", "no": "13", "name": "梁逸朗", "full": "6B 13 梁逸朗", "pin": "13"}, {"class": "5A", "no": "04", "name": "陳健鴻", "full": "5A 04 陳健鴻", "pin": "04"}, {"class": "5A", "no": "11", "name": "何思霆", "full": "5A 11 何思霆", "pin": "11"}, {"class": "5B", "no": "09", "name": "馮柏睿", "full": "5B 09 馮柏睿", "pin": "09"}, {"class": "5B", "no": "23", "name": "魏栢叡", "full": "5B 23 魏栢叡", "pin": "23"}, {"class": "5E", "no": "06", "name": "馮祉晴", "full": "5E 06 馮祉晴", "pin": "06"}, {"class": "4A", "no": "04", "name": "陳德林", "full": "4A 04 陳德林", "pin": "04"}, {"class": "4B", "no": "02", "name": "陳哲朗", "full": "4B 02 陳哲朗", "pin": "02"}, {"class": "4B", "no": "12", "name": "林思涵", "full": "4B 12 林思涵", "pin": "12"}, {"class": "4B", "no": "15", "name": "盧琦淇", "full": "4B 15 盧琦淇", "pin": "15"}, {"class": "4B", "no": "21", "name": "湯子睿", "full": "4B 21 湯子睿", "pin": "21"}, {"class": "4B", "no": "24", "name": "楊廷熙", "full": "4B 24 楊廷熙", "pin": "24"} ];
 const DEFAULT_SCHEDULE = { "Monday": { "13:05-13:20": [], "13:20-13:35": [] }, "Tuesday": { "13:05-13:20": [], "13:20-13:35": [] }, "Wednesday": { "13:05-13:20": [], "13:20-13:35": [] }, "Thursday": { "13:05-13:20": [], "13:20-13:35": [] }, "Friday": { "13:05-13:20": [], "13:20-13:35": [] } };
 function getLocalYYYYMMDD(d) { return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];}
-var isOfflineMode = false; function forceLoadLocal() { isOfflineMode = true; document.getElementById('systemStatus').style.display = 'block'; document.getElementById('systemStatus').className = 'status-offline'; document.getElementById('statusText').innerText = "🚫 系統目前為「單機離線模式」。為防止覆蓋雲端資料，目前只能【查看】，不能【簽到】或【修改】。請重新整理網頁以恢復連線。"; document.getElementById('forceBtn').style.display = 'none'; document.getElementById('mainContainer').style.display = 'block'; var stored = localStorage.getItem('info_literacy_v2_2'); if (stored) { var parsed = JSON.parse(stored); app.data = { students: parsed.students || DEFAULT_STUDENTS, schedule: parsed.schedule || DEFAULT_SCHEDULE, logs: parsed.logs || [], specialDates: parsed.specialDates || [] }; } else { app.data = { students: DEFAULT_STUDENTS, schedule: DEFAULT_SCHEDULE, logs: [], specialDates: [] }; } app.isLoaded = true; app.postLoad(); }
+var isOfflineMode = false; function forceLoadLocal() { isOfflineMode = true; document.getElementById('systemStatus').style.display = 'block'; document.getElementById('systemStatus').className = 'status-offline'; document.getElementById('statusText').innerText = "🚫 系統目前為「單機離線模式」。為防止覆蓋雲端資料，目前只能【查看】，不能【簽到】或【修改】。請重新整理網頁以恢復連線。"; document.getElementById('forceBtn').style.display = 'none'; document.getElementById('mainContainer').style.display = 'block'; var stored = localStorage.getItem('info_literacy_v2_3'); if (stored) { var parsed = JSON.parse(stored); app.data = { students: parsed.students || DEFAULT_STUDENTS, schedule: parsed.schedule || DEFAULT_SCHEDULE, logs: parsed.logs || [], specialDates: parsed.specialDates || [] }; } else { app.data = { students: DEFAULT_STUDENTS, schedule: DEFAULT_SCHEDULE, logs: [], specialDates: [] }; } app.isLoaded = true; app.postLoad(); }
 var app = {
     data: { students: [], schedule: {}, logs: [], specialDates: [] },
     pendingCheckIn: null, pendingSub: null, pendingSchedule: null, isLoaded: false, viewDateBase: new Date(),
@@ -207,7 +207,6 @@ var app = {
         if (!isFirebaseReady || !db) { setTimeout(forceLoadLocal, 500); return; }
         db.collection("config").doc("main").get().then(doc => {
             if (this.isLoaded) return;
-            this.isLoaded = true;
             let needsSave = false;
             if (doc.exists) {
                 const fetchedData = doc.data();
@@ -221,16 +220,24 @@ var app = {
                 needsSave = true;
             }
             if (needsSave) this.saveData();
-            localStorage.setItem('info_literacy_v2_2', JSON.stringify(this.data));
-            document.getElementById('systemStatus').style.display = 'none';
-            document.getElementById('mainContainer').style.display = 'block';
+            
+            // v2.3 HOTFIX: Call postLoad() ONLY AFTER data is ready.
+            this.isLoaded = true;
             this.postLoad();
+
         }).catch(error => { if (!this.isLoaded) document.getElementById('statusText').innerText = `❌ 網絡連線被拒 (${error.code})。請點擊紅色按鈕進入單機模式。`; });
     },
-    saveData() { if (isOfflineMode) { alert("🛑 系統處於離線保護模式，無法儲存！"); return false; } if (isFirebaseReady && db) db.collection("config").doc("main").set(this.data).then(() => localStorage.setItem('info_literacy_v2_2', JSON.stringify(this.data))).catch(err => console.error("Save Error", err)); return true; },
+    postLoad() {
+        localStorage.setItem('info_literacy_v2_3', JSON.stringify(this.data));
+        document.getElementById('systemStatus').style.display = 'none';
+        document.getElementById('mainContainer').style.display = 'block';
+        this.renderWeeklyRoster();
+        this.renderAdminTab();
+        this.renderAdminRoster();
+    },
+    saveData() { if (isOfflineMode) { alert("🛑 系統處於離線保護模式，無法儲存！"); return false; } if (isFirebaseReady && db) db.collection("config").doc("main").set(this.data).then(() => localStorage.setItem('info_literacy_v2_3', JSON.stringify(this.data))).catch(err => console.error("Save Error", err)); return true; },
     exportFullBackup() { const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.data, null, 2)); const dl = document.createElement('a'); dl.href = dataStr; dl.download = "ambassador_backup_" + getLocalYYYYMMDD(new Date()) + ".json"; document.body.appendChild(dl); dl.click(); dl.remove(); },
     importFullBackup() { const txt = document.getElementById('jsonRestore').value; if (!txt) { alert("請先貼上 JSON 內容！"); return; } try { const parsed = JSON.parse(txt); if (confirm("🚨 警告：這將會【強制覆蓋】雲端上目前所有的資料！\n確定要執行災難復原嗎？")) { this.data = parsed; db.collection("config").doc("main").set(this.data).then(() => { alert("✅ 災難復原成功！"); location.reload(); }); } } catch (e) { alert("❌ 格式錯誤，無法解析 JSON 內容！"); } },
-    postLoad() { this.renderWeeklyRoster(); this.renderAdminTab(); this.renderAdminRoster(); },
     getWeekDates(d) { const date = new Date(d); const day = date.getDay(); const diff = date.getDate() - day + (day === 0 ? -6 : 1); const monday = new Date(date.setDate(diff)); return Array.from({ length: 5 }, (_, i) => { const tempDate = new Date(monday); tempDate.setDate(monday.getDate() + i); return getLocalYYYYMMDD(tempDate); }); },
     changeWeek(offset) { this.viewDateBase.setDate(this.viewDateBase.getDate() + (offset * 7)); this.renderWeeklyRoster(); },
     resetWeek() { this.viewDateBase = new Date(); this.renderWeeklyRoster(); },
@@ -253,7 +260,7 @@ var app = {
     removeSpecialDate(index) { if (isOfflineMode) return; if (confirm("確定要刪除此豁免日嗎？")) { this.data.specialDates.splice(index, 1); if (this.saveData()) this.renderAdminTab(); } },
     saveAdminData(type) { if (isOfflineMode) return; if (type === 'students') { try { const newStudents = JSON.parse(document.getElementById('jsonStudents').value); if (!Array.isArray(newStudents) || !newStudents.every(s => s.full && s.pin)) throw new Error("學生名單格式不正確"); this.data.students = newStudents; if (this.saveData()) { alert('✅ 學生名單已儲存'); this.renderAdminTab(); this.renderAdminRoster(); } } catch (e) { alert('❌ JSON 格式錯誤: ' + e.message); } } }
 };
-window.onload = function() { app.init(); };
+window.onload = () => app.init();
 </script>
 </body>
 </html>
