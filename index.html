@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>資訊素養風紀管理系統 v3.1 (UI Fix)</title>
+    <title>資訊素養風紀管理系統 v3.2 (Final Fix)</title>
     <style>
         :root { --primary-color: #2c3e50; --accent-color: #3498db; --success-color: #27ae60; --pending-color: #34495e; --future-color: #bdc3c7; --holiday-color: #e67e22; --danger-color: #e74c3c; --excused-color: #f1c40f; --light-bg: #ecf0f1; }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; background: var(--light-bg); color: #333; }
@@ -38,7 +38,7 @@
 
 <div class="container" id="mainContainer" style="display:none;">
     <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h1>資訊素養風紀管理系統 v3.1</h1>
+        <h1>資訊素養風紀管理系統 v3.2</h1>
         <div>
             <span id="currentUser" style="margin-right: 15px; font-weight: bold;">身分: 學生</span>
             <button class="btn-primary" id="loginBtn" onclick="app.loginWithGoogle()">老師登入 (Google)</button>
@@ -210,26 +210,32 @@ const app = {
         }
         this.dbRef = window.fbServices.doc(window.fbServices.db, "config/main");
         
-        // Listen for authentication state changes
+        // *** LOGIC CHANGE ***
+        // 1. Load data immediately for public viewers (students).
+        this.loadData(); 
+
+        // 2. Listen for auth changes to grant teacher permissions or reload data on login/logout.
         window.fbServices.onAuthStateChanged(window.fbServices.auth, (user) => {
-            this.isTeacher = false; // Reset teacher status
             if (user) {
                 this.user = user;
+                // Re-load data to check for admin privileges.
                 this.loadData().then(isAuthorized => {
                     if (isAuthorized) {
                         this.isTeacher = true;
                         this.uiSetTeacherMode(user.displayName);
                     } else {
-                        alert(`'${user.displayName}'，您已登入，但並非授權的管理員。您將以學生模式瀏覽。`);
+                        // This case happens if a non-admin logs in.
+                        alert(`'${user.displayName}'，您已登入，但並非授權的管理員。`);
                         this.uiSetStudentMode();
                     }
                 });
             } else {
-                // User is signed out, treat as a student.
+                // User signed out. Reset to student mode.
                 this.user = null;
-                this.loadData().then(() => {
-                    this.uiSetStudentMode();
-                });
+                this.isTeacher = false;
+                this.uiSetStudentMode();
+                 // Optionally, reload data to ensure view is fresh after logout
+                this.loadData();
             }
         });
     },
@@ -240,6 +246,7 @@ const app = {
 
         try {
             const docSnap = await window.fbServices.getDoc(this.dbRef);
+            let needsSave = false;
             if (docSnap.exists()) {
                 const d = docSnap.data();
                 this.data = {
@@ -248,40 +255,35 @@ const app = {
                     logs: d.logs || [],
                     specialDates: d.specialDates || []
                 };
-                if (!d.students || !d.students.length || !d.schedule || !Object.keys(d.schedule).length) {
-                    await this.saveData("initial");
+                if (!d.students || !d.students.length || !Object.keys(d.schedule || {}).length) {
+                    needsSave = this.user && this.isTeacher; // Only teachers should try to save default data
                 }
             } else {
                 this.data = { students: DEFAULT_STUDENTS, schedule: DEFAULT_SCHEDULE, logs: [], specialDates: [] };
-                await this.saveData("initial");
+                needsSave = this.user && this.isTeacher; // Only teachers can create the initial document
             }
+
+            if (needsSave) {
+                 await this.saveData("initial");
+            }
+            
             this.postLoad();
-            return true; // Data load successful
+            return true; // Data load successful (we have read permission)
         } catch (err) {
             console.error("Load Data Error:", err);
-            if (err.code === 'permission-denied') {
-                 if (this.user) return false; // Logged in but not authorized
-                 else {
-                     // Not logged in, this is expected. Show alert and proceed to show login button.
-                     alert('從雲端載入資料失敗！您可能沒有讀取權限。');
-                 }
-            } else {
-                alert('從雲端載入資料失敗！錯誤: ' + err.message);
-            }
-            this.postLoad(true); // Load with error state
-            if (this.user) return false; // If there was a user, they are not authorized
-            return true; // If no user, this is a normal pre-login state
+            // This error now primarily means even public read is failing.
+            // Most likely a config or network issue.
+            alert('從雲端載入資料失敗！請檢查網絡或 Firebase 設定。');
+            this.postLoad(true);
+            return false;
         }
     },
     
     postLoad(error = false) {
-        // *** THIS IS THE FIX ***
-        // ALWAYS show the main container so the login button is visible.
         document.getElementById('mainContainer').style.display = 'block';
-
         if (error) {
-            document.getElementById('statusText').innerText = '❌ 資料載入失敗，請以老師身分登入。';
-            document.getElementById('systemStatus').style.display = 'block'; // Keep the status bar visible
+            document.getElementById('statusText').innerText = '❌ 資料載入失敗，請檢查網絡或稍後再試。';
+            document.getElementById('systemStatus').style.display = 'block';
         } else {
             document.getElementById('systemStatus').style.display = 'none';
         }
@@ -290,25 +292,29 @@ const app = {
     
     async saveData(source = "user") {
         if (!this.isTeacher) {
-             // Allow student-side actions like check-in/leave to save logs
             if (source !== 'student_action' && source !== 'initial') {
-                alert('只有老師才能儲存主要資料！');
-                return;
+                if (source !== "silent") alert('只有老師才能儲存資料！');
+                return false;
             }
         }
         if (!this.dbRef) {
             alert('數據庫未連接，無法儲存！');
-            return;
+            return false;
         }
         try {
-            await window.fbServices.setDoc(this.dbRef, this.data, { merge: true }); // Use merge to be safer
-            if (source !== "initial") console.log("Data saved to Firebase.");
+            // Teacher-only data should not be merged, but replaced.
+            await window.fbServices.setDoc(this.dbRef, this.data);
+            if (source !== "initial" && source !== "silent") console.log("Data saved to Firebase by " + (this.user ? this.user.displayName : "system"));
+            return true;
         } catch (err) {
             console.error("Save Error", err);
-            // Don't alert for student actions as they don't have write permission for the whole doc
-            if (this.isTeacher) {
-                alert(`資料儲存至雲端失敗！錯誤: ${err.message}`);
+            if (err.code === 'permission-denied' && source !== 'student_action') {
+                 // Don't alert students trying to do things they can't.
+                 if (this.isTeacher) alert(`儲存失敗：您沒有寫入權限。請確認您的UID已在安全規則中。`);
+            } else if (source !== 'student_action') {
+                 alert(`資料儲存至雲端失敗！錯誤: ${err.message}`);
             }
+            return false;
         }
     },
     
@@ -320,7 +326,6 @@ const app = {
                 alert("Google 登入失敗: " + error.message);
             });
     },
-
     logout() {
         window.fbServices.signOut(window.fbServices.auth);
     },
@@ -332,17 +337,15 @@ const app = {
         document.getElementById('logoutBtn').style.display = 'inline-block';
         document.getElementById('studentView').classList.remove('active');
         document.getElementById('teacherView').classList.add('active');
-        this.switchTab('dashboard'); // Default to dashboard
+        this.switchTab('dashboard');
     },
-    
     uiSetStudentMode() {
-        this.isTeacher = false;
         document.getElementById('currentUser').innerText = "身分: 學生";
         document.getElementById('logoutBtn').style.display = 'none';
         document.getElementById('loginBtn').style.display = 'inline-block';
         document.getElementById('teacherView').classList.remove('active');
         document.getElementById('studentView').classList.add('active');
-        this.renderAll(); // Rerender student view
+        this.renderAll();
     },
 
     renderAll() {
@@ -400,17 +403,12 @@ const app = {
     promptPin(name, date, time, mode) { this.pendingCheckIn = {student:name,date,time}; document.getElementById('authStudentName').innerText = name; document.getElementById('authDateDisplay').innerText = `${date} ${time}`; document.getElementById('studentPin').value = ""; document.getElementById('checkInDiv').style.display = mode === 'future' ? 'none' : 'block'; document.getElementById('modalInstruction').innerText = mode === 'future' ? '未來日子只能請假' : '如未能當值，可請假'; document.getElementById('studentPinModal').style.display = 'flex'; },
     
     async updateLog(logEntry) {
-        if (!this.dbRef) { alert('數據庫未連接'); return; }
-        const newLogs = [...this.data.logs, logEntry];
-        this.data.logs = newLogs; // Update local data immediately for UI
+        // Optimistic update for UI
+        this.data.logs.push(logEntry);
         this.renderWeeklyRoster();
-        try {
-            // This will fail for students, which is fine.
-            // For teachers, it saves the whole doc.
-            await this.saveData('student_action');
-        } catch (e) {
-            console.warn("Student action log failed to save immediately, will be saved by next teacher sync.", e);
-        }
+        // Try to save. This will fail for students, but that's expected.
+        // We rely on teachers syncing the full log later.
+        await this.saveData('student_action');
     },
     
     submitCheckIn() { const pin = document.getElementById('studentPin').value; if(!this.pendingCheckIn) return; const s = this.data.students.find(st=>st.full===this.pendingCheckIn.student); if(s&&pin===s.pin){ const log = {...this.pendingCheckIn,status:"Present",ts:new Date().toISOString()}; this.updateLog(log); document.getElementById('studentPinModal').style.display='none';alert('簽到成功');}else{alert('密碼錯誤');}},
@@ -441,7 +439,7 @@ const app = {
             tbody.appendChild(tr);
         });
     },
-    renderDashboard(){ /* ... unchanged ... */},
+    renderDashboard(){ /* ... Logic for dashboard ... */ },
     renderAdminTab(){
         if(!this.isTeacher) return;
         document.getElementById('jsonStudents').value = JSON.stringify(this.data.students, null, 2);
@@ -469,72 +467,19 @@ const app = {
         document.querySelectorAll('#scheduleModalCheckboxes input:checked').forEach(cb => selected.push(cb.value));
         if (!this.data.schedule[day]) this.data.schedule[day] = {};
         this.data.schedule[day][time] = selected;
-        this.saveData();
-        document.getElementById('scheduleModal').style.display='none';
-        this.renderAdminRoster();
-    },
-    addSpecialDate() {
-        if(!this.isTeacher) return;
-        const date = document.getElementById('specialDateInput').value;
-        const desc = document.getElementById('specialDateDesc').value;
-        if (date && desc) {
-            if (!this.data.specialDates.some(sd => sd.date === date)) {
-                this.data.specialDates.push({ date, desc });
-                this.saveData();
-                this.renderAll();
-            } else { alert('該日期已存在！'); }
-        } else { alert('請同時輸入日期和原因！'); }
-    },
-    removeSpecialDate(date) {
-        if(!this.isTeacher) return;
-        if (confirm(`確定要刪除 ${date} 這個特別日期嗎？`)) {
-            this.data.specialDates = this.data.specialDates.filter(sd => sd.date !== date);
-            this.saveData();
-            this.renderAll();
-        }
-    },
-    saveAdminData(type) {
-        if(!this.isTeacher) return;
-        if (type === 'students') {
-            try {
-                const students = JSON.parse(document.getElementById('jsonStudents').value);
-                this.data.students = students;
-                this.saveData();
-                alert('學生名單已更新！');
-            } catch (e) {
-                alert('JSON 格式錯誤，請檢查！');
+        this.saveData().then(success => {
+            if (success) {
+                document.getElementById('scheduleModal').style.display = 'none';
+                this.renderAdminRoster();
+                this.renderWeeklyRoster(); // Also update student view in real-time
             }
-        }
+        });
     },
-    exportFullBackup() {
-        if(!this.isTeacher) return;
-        const jsonString = JSON.stringify(this.data);
-        const blob = new Blob([jsonString], {type: "application/json"});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `ambassador_backup_${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-    },
-    importFullBackup() {
-        if(!this.isTeacher) return;
-        const jsonString = document.getElementById('jsonRestore').value;
-        if (!jsonString || !confirm('警告！這將會用文字框中的內容完全覆蓋雲端上的所有資料，此操作無法復原。確定要繼續嗎？')) return;
-        try {
-            const restoredData = JSON.parse(jsonString);
-            if (restoredData.students && restoredData.schedule && restoredData.logs) {
-                this.data = restoredData;
-                this.saveData();
-                alert('資料已從備份中匯入並儲存至雲端，頁面將會重新整理。');
-                location.reload();
-            } else {
-                alert('匯入失敗：JSON 內容缺少必要的資料結構 (students, schedule, logs)。');
-            }
-        } catch (e) {
-            alert('匯入失敗：JSON 格式錯誤，請檢查貼上的內容。');
-        }
-    }
+    addSpecialDate() { if(!this.isTeacher) return; const date = document.getElementById('specialDateInput').value; const desc = document.getElementById('specialDateDesc').value; if (date && desc) { if (!this.data.specialDates.some(sd => sd.date === date)) { this.data.specialDates.push({ date, desc }); this.saveData().then(s => s && this.renderAll()); } else { alert('該日期已存在！'); } } else { alert('請同時輸入日期和原因！'); } },
+    removeSpecialDate(date) { if(!this.isTeacher) return; if (confirm(`確定要刪除 ${date} 這個特別日期嗎？`)) { this.data.specialDates = this.data.specialDates.filter(sd => sd.date !== date); this.saveData().then(s => s && this.renderAll()); } },
+    saveAdminData(type) { if(!this.isTeacher) return; if (type === 'students') { try { const students = JSON.parse(document.getElementById('jsonStudents').value); this.data.students = students; this.saveData().then(s => s && alert('學生名單已更新！')); } catch (e) { alert('JSON 格式錯誤，請檢查！'); } } },
+    exportFullBackup() { if(!this.isTeacher) return; const jsonString = JSON.stringify(this.data); const blob = new Blob([jsonString], {type: "application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `ambassador_backup_${new Date().toISOString().split('T')[0]}.json`; a.click(); URL.revokeObjectURL(url); },
+    importFullBackup() { if(!this.isTeacher) return; const jsonString = document.getElementById('jsonRestore').value; if (!jsonString || !confirm('警告！這將會用文字框中的內容完全覆蓋雲端上的所有資料，此操作無法復原。確定要繼續嗎？')) return; try { const restoredData = JSON.parse(jsonString); if (restoredData.students && restoredData.schedule) { this.data = restoredData; this.saveData().then(s => { if(s) { alert('資料已從備份中匯入並儲存至雲端，頁面將會重新整理。'); location.reload(); } }); } else { alert('匯入失敗：JSON 內容缺少必要的資料結構 (students, schedule)。'); } } catch (e) { alert('匯入失敗：JSON 格式錯誤，請檢查貼上的內容。'); } }
 };
 </script>
 
