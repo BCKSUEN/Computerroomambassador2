@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>資訊素養風紀管理系統 v3.0 (Google Auth)</title>
+    <title>資訊素養風紀管理系統 v3.1 (UI Fix)</title>
     <style>
         :root { --primary-color: #2c3e50; --accent-color: #3498db; --success-color: #27ae60; --pending-color: #34495e; --future-color: #bdc3c7; --holiday-color: #e67e22; --danger-color: #e74c3c; --excused-color: #f1c40f; --light-bg: #ecf0f1; }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; background: var(--light-bg); color: #333; }
@@ -38,7 +38,7 @@
 
 <div class="container" id="mainContainer" style="display:none;">
     <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h1>資訊素養風紀管理系統 v3.0</h1>
+        <h1>資訊素養風紀管理系統 v3.1</h1>
         <div>
             <span id="currentUser" style="margin-right: 15px; font-weight: bold;">身分: 學生</span>
             <button class="btn-primary" id="loginBtn" onclick="app.loginWithGoogle()">老師登入 (Google)</button>
@@ -214,15 +214,12 @@ const app = {
         window.fbServices.onAuthStateChanged(window.fbServices.auth, (user) => {
             this.isTeacher = false; // Reset teacher status
             if (user) {
-                // User is signed in. Now, check if this user is an authorized admin.
-                // This check is done via Firestore Security Rules.
                 this.user = user;
                 this.loadData().then(isAuthorized => {
                     if (isAuthorized) {
                         this.isTeacher = true;
                         this.uiSetTeacherMode(user.displayName);
                     } else {
-                        // Not an authorized admin, treat as a student.
                         alert(`'${user.displayName}'，您已登入，但並非授權的管理員。您將以學生模式瀏覽。`);
                         this.uiSetStudentMode();
                     }
@@ -251,55 +248,67 @@ const app = {
                     logs: d.logs || [],
                     specialDates: d.specialDates || []
                 };
-                // Check if default data needs to be saved back
                 if (!d.students || !d.students.length || !d.schedule || !Object.keys(d.schedule).length) {
                     await this.saveData("initial");
                 }
             } else {
-                // Document doesn't exist, use defaults and save them
                 this.data = { students: DEFAULT_STUDENTS, schedule: DEFAULT_SCHEDULE, logs: [], specialDates: [] };
                 await this.saveData("initial");
             }
             this.postLoad();
-            return true; // Data load successful (might not mean authorized)
+            return true; // Data load successful
         } catch (err) {
-            // This will likely catch permission errors if not logged in
             console.error("Load Data Error:", err);
-            if (err.code === 'permission-denied' && this.user) {
-                // This means the logged-in user isn't on the admin list in security rules.
-                return false;
+            if (err.code === 'permission-denied') {
+                 if (this.user) return false; // Logged in but not authorized
+                 else {
+                     // Not logged in, this is expected. Show alert and proceed to show login button.
+                     alert('從雲端載入資料失敗！您可能沒有讀取權限。');
+                 }
+            } else {
+                alert('從雲端載入資料失敗！錯誤: ' + err.message);
             }
-            alert('從雲端載入資料失敗！您可能沒有讀取權限。');
             this.postLoad(true); // Load with error state
-            return false;
+            if (this.user) return false; // If there was a user, they are not authorized
+            return true; // If no user, this is a normal pre-login state
         }
     },
     
     postLoad(error = false) {
+        // *** THIS IS THE FIX ***
+        // ALWAYS show the main container so the login button is visible.
+        document.getElementById('mainContainer').style.display = 'block';
+
         if (error) {
             document.getElementById('statusText').innerText = '❌ 資料載入失敗，請以老師身分登入。';
+            document.getElementById('systemStatus').style.display = 'block'; // Keep the status bar visible
         } else {
             document.getElementById('systemStatus').style.display = 'none';
-            document.getElementById('mainContainer').style.display = 'block';
         }
         this.renderAll();
     },
-
+    
     async saveData(source = "user") {
         if (!this.isTeacher) {
-            if (source !== 'initial') alert('只有老師才能儲存資料！');
-            return;
+             // Allow student-side actions like check-in/leave to save logs
+            if (source !== 'student_action' && source !== 'initial') {
+                alert('只有老師才能儲存主要資料！');
+                return;
+            }
         }
         if (!this.dbRef) {
             alert('數據庫未連接，無法儲存！');
             return;
         }
         try {
-            await window.fbServices.setDoc(this.dbRef, this.data);
-            if (source !== "initial") console.log("Data saved to Firebase by " + this.user.displayName);
+            await window.fbServices.setDoc(this.dbRef, this.data, { merge: true }); // Use merge to be safer
+            if (source !== "initial") console.log("Data saved to Firebase.");
         } catch (err) {
             console.error("Save Error", err);
-            alert(`資料儲存至雲端失敗！錯誤: ${err.message}`);
+            // Don't alert for student actions as they don't have write permission for the whole doc
+            if (this.isTeacher) {
+                alert(`資料儲存至雲端失敗！錯誤: ${err.message}`);
+            }
         }
     },
     
@@ -327,6 +336,7 @@ const app = {
     },
     
     uiSetStudentMode() {
+        this.isTeacher = false;
         document.getElementById('currentUser').innerText = "身分: 學生";
         document.getElementById('logoutBtn').style.display = 'none';
         document.getElementById('loginBtn').style.display = 'inline-block';
@@ -344,7 +354,7 @@ const app = {
         }
     },
     
-    // --- Rest of the app logic (mostly unchanged) ---
+    // --- Rest of the app logic ---
     getWeekDates(d) { const date = new Date(d); const day = date.getDay(); const diff = date.getDate() - day + (day === 0 ? -6 : 1); const monday = new Date(date.setDate(diff)); return Array.from({length: 5}, (_, i) => new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i).toISOString().split('T')[0]); },
     changeWeek(offset, forAdmin = false) { this.viewDateBase.setDate(this.viewDateBase.getDate() + (offset * 7)); if(forAdmin) this.renderAdminRoster(); else this.renderWeeklyRoster(); },
     resetWeek(forAdmin = false) { this.viewDateBase = new Date(); if(forAdmin) this.renderAdminRoster(); else this.renderWeeklyRoster(); },
@@ -353,6 +363,7 @@ const app = {
 
     renderWeeklyRoster() { 
         const today = new Date().toISOString().split('T')[0], week = this.getWeekDates(this.viewDateBase), days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], times = ["13:05-13:20", "13:20-13:35"], tbody = document.getElementById('weeklyRosterBody'); 
+        if(!tbody) return;
         document.getElementById('weekRange').innerText = `${week[0]} ~ ${week[4]}`; 
         const holidayToday = this.getHolidayInfo(today);
         document.getElementById('holidayBanner').innerText = holidayToday.isHoliday ? `今天是 ${today} (${holidayToday.desc})，無需當值。` : '';
@@ -373,7 +384,7 @@ const app = {
                         let c='future', t=name, oc=`app.promptPin('${name}','${d}','${time}','future')`; 
                         if(log){
                             if(log.status==='Present'){c='checked';t+=' (出席)'; oc='';}
-                            else{c='excused';t+=' (請假)'; oc='';}
+                            else if(log.status==='Excused'){c='excused';t+=' (請假)'; oc='';}
                         }else if(d<today){c='past';t+=' (缺)';oc='';}
                         else if(d===today){c='pending';oc=`app.promptPin('${name}','${d}','${time}','today')`;} 
                         html+=`<div class="duty-cell ${c}" onclick="${oc}">${t}</div>`; 
@@ -387,10 +398,25 @@ const app = {
     },
 
     promptPin(name, date, time, mode) { this.pendingCheckIn = {student:name,date,time}; document.getElementById('authStudentName').innerText = name; document.getElementById('authDateDisplay').innerText = `${date} ${time}`; document.getElementById('studentPin').value = ""; document.getElementById('checkInDiv').style.display = mode === 'future' ? 'none' : 'block'; document.getElementById('modalInstruction').innerText = mode === 'future' ? '未來日子只能請假' : '如未能當值，可請假'; document.getElementById('studentPinModal').style.display = 'flex'; },
-    submitCheckIn() { const pin = document.getElementById('studentPin').value; if(!this.pendingCheckIn) return; const s = this.data.students.find(st=>st.full===this.pendingCheckIn.student); if(s&&pin===s.pin){this.data.logs.push({...this.pendingCheckIn,status:"Present",ts:new Date().toISOString()}); this.saveData(); document.getElementById('studentPinModal').style.display='none';alert('簽到成功');this.renderWeeklyRoster();}else{alert('密碼錯誤');}},
-    submitExcused() { if(!this.pendingCheckIn) return; if(confirm(`確定為 [${this.pendingCheckIn.student}] 登記 ${this.pendingCheckIn.date} 請假?`)){this.data.logs.push({...this.pendingCheckIn,status:"Excused",ts:new Date().toISOString()});this.saveData();document.getElementById('studentPinModal').style.display='none';alert('請假成功');this.renderWeeklyRoster();}},
+    
+    async updateLog(logEntry) {
+        if (!this.dbRef) { alert('數據庫未連接'); return; }
+        const newLogs = [...this.data.logs, logEntry];
+        this.data.logs = newLogs; // Update local data immediately for UI
+        this.renderWeeklyRoster();
+        try {
+            // This will fail for students, which is fine.
+            // For teachers, it saves the whole doc.
+            await this.saveData('student_action');
+        } catch (e) {
+            console.warn("Student action log failed to save immediately, will be saved by next teacher sync.", e);
+        }
+    },
+    
+    submitCheckIn() { const pin = document.getElementById('studentPin').value; if(!this.pendingCheckIn) return; const s = this.data.students.find(st=>st.full===this.pendingCheckIn.student); if(s&&pin===s.pin){ const log = {...this.pendingCheckIn,status:"Present",ts:new Date().toISOString()}; this.updateLog(log); document.getElementById('studentPinModal').style.display='none';alert('簽到成功');}else{alert('密碼錯誤');}},
+    submitExcused() { if(!this.pendingCheckIn) return; if(confirm(`確定為 [${this.pendingCheckIn.student}] 登記 ${this.pendingCheckIn.date} 請假?`)){const log = {...this.pendingCheckIn,status:"Excused",ts:new Date().toISOString()}; this.updateLog(log); document.getElementById('studentPinModal').style.display='none';alert('請假成功');}},
     initSubstitute() { const time = document.getElementById('subTimeSlot').value, today = new Date().toISOString().split('T')[0]; if(this.isHoliday(today)){alert("假期無需替更");return;} const [hr,min]=time.split('-')[0].split(':').map(Number); const allow = new Date(); allow.setHours(hr,min+5,0,0); if(new Date()<allow){alert("需在當值5分鐘後方可替更");return;} this.pendingSub = {date:today,time}; document.getElementById('subTimeDisplay').innerText=time; const sel=document.getElementById('subStudentSelect'); sel.innerHTML='<option value="">--選擇名字--</option>'; this.data.students.forEach(s=>sel.innerHTML+=`<option value="${s.full}">${s.full}</option>`); document.getElementById('subStudentPin').value=""; document.getElementById('substituteModal').style.display='flex';},
-    submitSubstitute() { const name=document.getElementById('subStudentSelect').value, pin=document.getElementById('subStudentPin').value; if(!name){alert("請選擇名字");return;} const s=this.data.students.find(st=>st.full===name); const dayName=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()]; if((this.data.schedule[dayName]?.[this.pendingSub.time]||[]).includes(name)){alert("你是原定當值員，不能替更自己。");return;} if(this.data.logs.some(l=>l.date===this.pendingSub.date&&l.student===name && (l.status === 'Present' || l.status === 'Substitute'))){alert("你今天已簽到或替更，不能重複。");return;} if(s&&pin===s.pin){this.data.logs.push({date:this.pendingSub.date,time:this.pendingSub.time,student:name,status:"Substitute",ts:new Date().toISOString()});this.saveData();document.getElementById('substituteModal').style.display='none';alert('替更成功');this.renderWeeklyRoster();}else{alert('密碼錯誤');}},
+    submitSubstitute() { const name=document.getElementById('subStudentSelect').value, pin=document.getElementById('subStudentPin').value; if(!name){alert("請選擇名字");return;} const s=this.data.students.find(st=>st.full===name); const dayName=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()]; if((this.data.schedule[dayName]?.[this.pendingSub.time]||[]).includes(name)){alert("你是原定當值員，不能替更自己。");return;} if(this.data.logs.some(l=>l.date===this.pendingSub.date&&l.student===name && (l.status === 'Present' || l.status === 'Substitute'))){alert("你今天已簽到或替更，不能重複。");return;} if(s&&pin===s.pin){const log = {date:this.pendingSub.date,time:this.pendingSub.time,student:name,status:"Substitute",ts:new Date().toISOString()}; this.updateLog(log); document.getElementById('substituteModal').style.display='none';alert('替更成功');}else{alert('密碼錯誤');}},
     
     // Teacher-only functions
     switchTab(tab) { if(!this.isTeacher) return; ['dashboard','schedule','admin'].forEach(t=>document.getElementById(`tab-${t}`).style.display='none');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(`tab-${tab}`).style.display='block';document.querySelector(`.tab-btn[onclick*="'${tab}'"]`).classList.add('active');this.renderAll();},
@@ -421,8 +447,8 @@ const app = {
         document.getElementById('jsonStudents').value = JSON.stringify(this.data.students, null, 2);
         const list = document.getElementById('specialDatesList');
         list.innerHTML = '';
-        (this.data.specialDates || []).forEach(sd => {
-            list.innerHTML += `<li>${sd.date}: ${sd.desc} <button onclick="app.removeSpecialDate('${sd.date}')">刪除</button></li>`;
+        (this.data.specialDates || []).sort((a,b) => a.date.localeCompare(b.date)).forEach(sd => {
+            list.innerHTML += `<li>${sd.date}: ${sd.desc} <button class="btn-danger" style="padding:2px 6px; font-size:0.8rem;" onclick="app.removeSpecialDate('${sd.date}')">刪</button></li>`;
         });
     },
     openScheduleModal(day,time) {
@@ -455,8 +481,7 @@ const app = {
             if (!this.data.specialDates.some(sd => sd.date === date)) {
                 this.data.specialDates.push({ date, desc });
                 this.saveData();
-                this.renderAdminTab();
-                this.renderWeeklyRoster();
+                this.renderAll();
             } else { alert('該日期已存在！'); }
         } else { alert('請同時輸入日期和原因！'); }
     },
@@ -465,8 +490,7 @@ const app = {
         if (confirm(`確定要刪除 ${date} 這個特別日期嗎？`)) {
             this.data.specialDates = this.data.specialDates.filter(sd => sd.date !== date);
             this.saveData();
-            this.renderAdminTab();
-            this.renderWeeklyRoster();
+            this.renderAll();
         }
     },
     saveAdminData(type) {
@@ -499,7 +523,6 @@ const app = {
         if (!jsonString || !confirm('警告！這將會用文字框中的內容完全覆蓋雲端上的所有資料，此操作無法復原。確定要繼續嗎？')) return;
         try {
             const restoredData = JSON.parse(jsonString);
-            // Basic validation
             if (restoredData.students && restoredData.schedule && restoredData.logs) {
                 this.data = restoredData;
                 this.saveData();
