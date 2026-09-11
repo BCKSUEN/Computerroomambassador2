@@ -28,7 +28,52 @@
     position: relative;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* 加上微弱陰影，讓彩色色塊更有立體感 */
 }
-        .cell-checked { background: var(--success-color); cursor: default; } .cell-excused { background: var(--excused-color); color: #333; cursor: default; } .cell-subbed { background: var(--accent-color); cursor: default; } .cell-pending { background: var(--pending-color); cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.1s; } .cell-pending:hover { transform: scale(1.05); } .cell-future { background: var(--future-color); color: #2c3e50; cursor: pointer; border: 1px dashed #7f8c8d; } .cell-future:hover { transform: scale(1.05); } .cell-past { background: var(--pending-color); opacity: 0.4; cursor: not-allowed; } .cell-holiday { background: var(--holiday-color); cursor: not-allowed; }
+        .duty-cell.checked { 
+    background-color: var(--success-color) !important; 
+    color: white !important; 
+    cursor: default; 
+} 
+.duty-cell.excused { 
+    background-color: var(--excused-color) !important; 
+    color: #2c3e50 !important; /* 👈 請假為黃色底，配深色字最清晰 */
+    cursor: default; 
+} 
+.duty-cell.subbed { 
+    background-color: var(--accent-color) !important; 
+    color: white !important; 
+    cursor: default; 
+} 
+.duty-cell.pending { 
+    background-color: var(--pending-color) !important; 
+    color: white !important; 
+    cursor: pointer; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+    transition: transform 0.1s; 
+} 
+.duty-cell.pending:hover { 
+    transform: scale(1.03); 
+} 
+.duty-cell.future { 
+    background-color: var(--future-color) !important; 
+    color: #2c3e50 !important; /* 👈 未來日子為淺灰底，配深色字最清晰 */
+    cursor: pointer; 
+    border: 1px dashed #7f8c8d; 
+    transition: transform 0.1s; 
+} 
+.duty-cell.future:hover { 
+    transform: scale(1.03); 
+} 
+.duty-cell.past { 
+    background-color: var(--pending-color) !important; 
+    color: rgba(255,255,255,0.6) !important; 
+    opacity: 0.5; 
+    cursor: not-allowed; 
+} 
+.duty-cell.holiday { 
+    background-color: var(--holiday-color) !important; 
+    color: white !important; 
+    cursor: not-allowed; 
+}
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; } @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
         .card { border: 1px solid #ddd; border-radius: 5px; padding: 15px; background: #fafafa; }
         .tabs { margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 5px; } .tab-btn { background: transparent; color: #7f8c8d; margin-right: 10px; font-weight: bold; } .tab-btn.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); border-radius: 0; }
