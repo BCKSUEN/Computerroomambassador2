@@ -241,9 +241,10 @@ const app = {
             });
         });
         
-        this.data.logs.forEach(log => {
+         this.data.logs.forEach(log => {
             const studentKey = log.student;
-            if (stats[studentKey]) {
+            // 💡 關鍵：只計算 2026-09-01 或之後的簽到歷史
+            if (log.date >= '2026-09-01' && stats[studentKey]) {
                 if (log.status === 'Present') { stats[studentKey].score += 2; } 
                 else if (log.status === 'Substitute') { stats[studentKey].score += 3; }
             }
@@ -251,10 +252,14 @@ const app = {
         
         // Simplified absent calculation: Find scheduled duties in the past that have no corresponding log entry
         let allScheduledDuties = [];
-        for (let i = 0; i < 90; i++) { // Check past 90 days
+        for (let i = 0; i < 90; i++) { // 檢查過去 90 天
             let pastDate = new Date();
             pastDate.setDate(pastDate.getDate() - i);
             let dayStr = pastDate.toISOString().split('T')[0];
+            
+            // 💡 關鍵：如果日期早於 2026-09-01，就直接停止並跳出，不計入缺席
+            if (dayStr < '2026-09-01') break; 
+
             let dayName = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][pastDate.getDay()];
             if(this.data.schedule[dayName] && !this.isHoliday(dayStr)) {
                 Object.entries(this.data.schedule[dayName]).forEach(([time, students]) => {
