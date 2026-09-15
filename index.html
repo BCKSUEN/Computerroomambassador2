@@ -224,7 +224,7 @@ const app = {
     // Teacher-only functions
     switchTab(tab) { if(!this.isTeacher) return; ['dashboard','schedule','admin'].forEach(t=>document.getElementById(`tab-${t}`).style.display='none');document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(`tab-${tab}`).style.display='block';document.querySelector(`.tab-btn[onclick*="'${tab}'"]`).classList.add('active');this.renderAll();},
     renderAdminRoster() { if(!this.isTeacher) return; const week = this.getWeekDates(this.viewDateBase), days=["Monday","Tuesday","Wednesday","Thursday","Friday"], times=["13:05-13:20","13:20-13:35"], tbody=document.getElementById('adminRosterBody'); document.getElementById('adminWeekRange').innerText = `${week[0]} ~ ${week[4]}`; tbody.innerHTML=""; times.forEach(time=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td><strong>${time}</strong></td>`; days.forEach((day, i)=>{ const d = week[i]; const holidayInfo = this.getHolidayInfo(d); let html=''; (this.data.schedule[day]?.[time]||[]).forEach(name=>{html+=`<span class="student-chip">${(this.data.students.find(s=>s.full===name)||{name}).name}</span>`;}); const clickHandler = holidayInfo.isHoliday ? "" : `app.openScheduleModal('${day}','${time}')`; tr.innerHTML+=`<td class="admin-duty-cell ${holidayInfo.isHoliday ? 'holiday' : ''}" onclick="${clickHandler}">${holidayInfo.isHoliday ? `<i>${holidayInfo.desc}</i>` : html}</td>`; }); tbody.appendChild(tr); }); },
-    renderDashboard(){     renderDashboard() {
+    renderDashboard() {
         if (!this.isTeacher) return;
 
         const scoreBody = document.getElementById('scoreTableBody');
